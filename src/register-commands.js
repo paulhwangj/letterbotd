@@ -1,13 +1,36 @@
 // Runs to actually register what commands the bot will have
-
 require("dotenv").config();
-const { REST, Routes } = require("discord.js");
+const { REST, Routes, ApplicationCommandOptionType } = require("discord.js");
 
 const commands = [
+  // EXAMPLE: command with options
   {
-    name: "hey",
-    description: "Replies with hey!",
+    name: "add",
+    description: "adds two numbers",
+    options: [
+      {
+        name: "first-number",
+        description: "the first number",
+        type: ApplicationCommandOptionType.Number,
+        required: true,
+      },
+      {
+        name: "second-number",
+        description: "the secopnd number",
+        type: ApplicationCommandOptionType.Number,
+        required: true,
+      },
+    ],
   },
+  // {
+  //   name: "fav-movies",
+  //   description: "gets your favorite movies",
+  //   options: [
+  //     {
+  //       name: "",
+  //     },
+  //   ],
+  // },
 ];
 
 const rest = new REST({ version: "10" }).setToken(process.env.LETTERBOTD_TOKEN);

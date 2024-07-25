@@ -21,8 +21,12 @@ client.on("interactionCreate", (interaction) => {
   // If it's not a slash command interaction, bot does nothing
   if (!interaction.isChatInputCommand) return;
 
-  if (interaction.commandName == "hey") {
-    interaction.reply("hey");
+  if (interaction.commandName == "add") {
+    const num1 = interaction.options.get("first-number").value;
+    const num2 = interaction.options.get("first-number").value;
+
+    console.log(num1 + num2);
+    return num1 + num2;
   }
 });
 
