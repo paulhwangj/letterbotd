@@ -1,5 +1,9 @@
 const { Client, IntentsBitField } = require("discord.js");
 
+// added to read the .env file
+const dotenv = require("dotenv");
+dotenv.config();
+
 // Client = our bot, this is what we initialize
 const client = new Client({
   intents: [
@@ -12,7 +16,4 @@ const client = new Client({
   ],
 });
 
-// TODO: Store this somewhere securely
-client.login(
-  ""
-);
+client.login(process.env.LETTERBOTD_TOKEN);
