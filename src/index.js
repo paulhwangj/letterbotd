@@ -64,41 +64,15 @@ async function getWatchListMovies(username) {
     // Get all the elements with the class "poster-container"
     let movies = await page.$$(".poster-container");
     // movies will at most have 28 films in it
-    for (let movie of movies) {
-      // let attributeValue = await page.evaluate((el) => {
-      //   console.log(el);
-      //   el.getAttribute("data-film-name");
-      // }, movie);
-
-      let attributeValue = await movie.evaluate((el) =>
-        el.getElementsByClassName("poster")
-      );
+    for (let liOfMovie of movies) {
+      let attributeValue = await liOfMovie.evaluate((domElement) => {
+        domElement.getElementsByClassName("poster");
+      });
       console.log(attributeValue);
       // console.log(attributeValue);
     }
-    // console.log(await childDiv.evaluate((el) => [...el.dataset]));
-
-    // const dataValues = await page.$$eval("div.poster-container", (divs) => {
-    //   divs.map((div) => console.log(div.dataset.filmName));
-    //   console.log(divs);
-    // });
-    // console.log(dataValues);
-
-    // await page.evaluate(() => {
-
-    //   for (i = 0; i < movies.length; i++) {
-
-    //   }
-    // });
-    // const movies = await page.evaluate(() => {
-    //   // Fetch the first element with class "quote"
-    //   const movie = document.querySelector(".poster-container");
-
-    //   return { movie };
-    // });
 
     // TODO: Go through all the pages that a user may have for their wishlist
-    // await page.locator('.devsite-result-item-link').click();
     console.log("succesfully acquired a movie");
   } catch (error) {
     console.log(
