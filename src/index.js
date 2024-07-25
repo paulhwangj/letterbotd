@@ -39,6 +39,7 @@ client.on("interactionCreate", async (interaction) => {
 async function getWatchListMovies(username) {
   var browser;
   try {
+    // TODO: Loop through all the pages that make up the whole watchlist
     console.log(`getting movies from ${username}'s watchlist`);
 
     // Launch the browser and open a new blank page
@@ -62,21 +63,14 @@ async function getWatchListMovies(username) {
 
     // Get all the elements with the class "poster-container"
     let movies = await page.$$(".poster-container");
-    // console.log(movies);
-    // let childDiv = await movies.$("div");
-    // Extract information from each <div>
-
     // movies will at most have 28 films in it
-    // var x = 0;      // TODO: Delete
     for (let movie of movies) {
-      // console.log(x);   // TODO: Delete
-      // x++; // TODO: Delete
-      let attributeValue = await page.evaluate((el) => {
-        console.log(el);
-        el.getAttribute("data-film-name");
-      }, movie);
+      // let attributeValue = await page.evaluate((el) => {
+      //   console.log(el);
+      //   el.getAttribute("data-film-name");
+      // }, movie);
 
-      // let attributeValue = await movie.evaluate((el) => el.dataset)
+      let attributeValue = await movie.evaluate((el) => el.getElementsByClassName("poster"))
       console.log(attributeValue);
     }
     // console.log(await childDiv.evaluate((el) => [...el.dataset]));
