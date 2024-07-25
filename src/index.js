@@ -25,8 +25,7 @@ client.on("interactionCreate", (interaction) => {
     const num1 = interaction.options.get("first-number").value;
     const num2 = interaction.options.get("first-number").value;
 
-    console.log(num1 + num2);
-    return num1 + num2;
+    interaction.reply(`The sum is ${num1 + num2}`);
   }
 });
 
