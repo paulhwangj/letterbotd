@@ -42,21 +42,44 @@ async function getWatchListMovies(username) {
     console.log(`getting movies from ${username}'s watchlist`);
 
     // Launch the browser and open a new blank page
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+    });
 
     // Navigate the page to a URL.
     await page.goto(`https://letterboxd.com/${username}/watchlist/`, {
       waitUntil: "domcontentloaded",
     });
 
+    // // Scroll to the bottom of the page so that all the content loads
+    // await autoScroll(page);
+
     // checks to see that html is actually
     // console.log(await page.content());
 
     // Get all the elements with the class "poster-container"
-    let movies = await page.$(".poster-container");
-    let childDiv = await movies.$("div");
-    console.log(await childDiv.evaluate((el) => [...el.classList]));
+    let movies = await page.$$(".poster-container");
+    // console.log(movies);
+    // let childDiv = await movies.$("div");
+    // Extract information from each <div>
+
+    // movies will at most have 28 films in it
+    // var x = 0;      // TODO: Delete
+    for (let movie of movies) {
+      // console.log(x);   // TODO: Delete
+      // x++; // TODO: Delete
+      let attributeValue = await page.evaluate((el) => {
+        console.log(el);
+        el.getAttribute("data-film-name");
+      }, movie);
+
+      // let attributeValue = await movie.evaluate((el) => el.dataset)
+      console.log(attributeValue);
+    }
+    // console.log(await childDiv.evaluate((el) => [...el.dataset]));
 
     // const dataValues = await page.$$eval("div.poster-container", (divs) => {
     //   divs.map((div) => console.log(div.dataset.filmName));
@@ -91,5 +114,43 @@ async function getWatchListMovies(username) {
     }
   }
 }
+
+// TODO: remove?
+async function autoScroll(page) {
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      var totalHeight = 0;
+      var distance = 100;
+      var timer = setInterval(() => {
+        var scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+
+        if (totalHeight >= scrollHeight - window.innerHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100);
+    });
+  });
+}
+
+// TODO: remove?
+// async function scrollToBottom(page) {
+//   const distance = 100; // should be less than or equal to window.innerHeight
+//   const delay = 100;
+//   while (
+//     await page.evaluate(
+//       () =>
+//         document.scrollingElement.scrollTop + window.innerHeight <
+//         document.scrollingElement.scrollHeight
+//     )
+//   ) {
+//     await page.evaluate((y) => {
+//       document.scrollingElement.scrollBy(0, y);
+//     }, distance);
+//     await page.waitFor(delay);
+//   }
+// }
 
 client.login(process.env.LETTERBOTD_TOKEN);
