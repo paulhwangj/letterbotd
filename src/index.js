@@ -54,16 +54,15 @@ async function getWatchListMovies(username) {
     // console.log(await page.content());
 
     // Get all the elements with the class "poster-container"
-    // let movies = await page.$(".poster-container");
-    // let childDiv = await movies.$("div");
-    // console.log(await childDiv.evaluateHandle(el => el.dataset.filmName));
+    let movies = await page.$(".poster-container");
+    let childDiv = await movies.$("div");
+    console.log(await childDiv.evaluate((el) => [...el.classList]));
 
-    const dataValues = await page.$$eval(".poster-container", (divs) => {
-      divs.map((div) => console.log(div.dataset.filmName));
-      console.log(divs);
-    });
-
-    console.log(dataValues);
+    // const dataValues = await page.$$eval("div.poster-container", (divs) => {
+    //   divs.map((div) => console.log(div.dataset.filmName));
+    //   console.log(divs);
+    // });
+    // console.log(dataValues);
 
     // await page.evaluate(() => {
 
