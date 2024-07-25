@@ -70,8 +70,11 @@ async function getWatchListMovies(username) {
       //   el.getAttribute("data-film-name");
       // }, movie);
 
-      let attributeValue = await movie.evaluate((el) => el.getElementsByClassName("poster"))
+      let attributeValue = await movie.evaluate((el) =>
+        el.getElementsByClassName("poster")
+      );
       console.log(attributeValue);
+      // console.log(attributeValue);
     }
     // console.log(await childDiv.evaluate((el) => [...el.dataset]));
 
