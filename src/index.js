@@ -39,6 +39,7 @@ client.on("interactionCreate", async (interaction) => {
 async function getWatchListMovies(username) {
   var browser;
   try {
+    let allMoviesInWatchlist = [];
     // TODO: Loop through all the pages that make up the whole watchlist
     console.log(`getting movies from ${username}'s watchlist`);
 
@@ -65,11 +66,17 @@ async function getWatchListMovies(username) {
     let movies = await page.$$(".poster-container");
     // movies will at most have 28 films in it
     for (let liOfMovie of movies) {
-      let attributeValue = await liOfMovie.evaluate((domElement) => {
-        domElement.getElementsByClassName("poster");
-      });
-      console.log(attributeValue);
-      // console.log(attributeValue);
+      // let attributeValue = await liOfMovie.evaluate((domElement) => {
+      //   domElement.getElementsByClassName("poster");
+      // });
+
+      let attributeValue = await page.evaluate((el) => {
+        // Find the child elements with class "poster" within the current element
+        let posterElements = el.getElementsByClassName("poster");
+        // Convert HTMLCollection to an array and return the length or any other relevant information
+        return Array.from(posterElements).map((poster) => poster.textContent);
+      }, liOfMovie);
+      console.log(attributeValue);    // TODO: Delete
     }
 
     // TODO: Go through all the pages that a user may have for their wishlist
