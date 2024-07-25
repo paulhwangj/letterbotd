@@ -5,16 +5,14 @@ const commands = [
   {
     name: "hey",
     description: "Replies with hey!",
-    // options:
-    // choices:
   },
 ];
 
-const rest = new Rest({ version: "10" }).setToken(process.env.LETTERBOTD_TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.LETTERBOTD_TOKEN);
 
-async () => {
+(async () => {
   try {
-    console.log("Registering slash commands")
+    console.log("Registering slash commands");
 
     await rest.put(
       Routes.applicationGuildCommands(
@@ -29,5 +27,5 @@ async () => {
     console.log(`there was an error: ${error}`);
   }
 
-  console.log("Slash commands are registered")
-};
+  console.log("Slash commands are registered");
+})();
