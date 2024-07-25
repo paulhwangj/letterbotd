@@ -70,14 +70,35 @@ async function getWatchListMovies(username) {
       //   domElement.getElementsByClassName("poster");
       // });
 
-      let attributeValue = await page.evaluate((el) => {
+      let movieDetails = await page.evaluate((el) => {
         // Find the child elements with class "poster" within the current element
-        let posterElements = el.getElementsByClassName("poster");
-        // Convert HTMLCollection to an array and return the length or any other relevant information
-        return Array.from(posterElements).map((poster) => poster.textContent);
+        let poster = el.getElementsByClassName("poster")[0];
+
+        // create custom object
+        let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
+        return {
+          name: poster.textContent.trim(), // Extract the text content and trim whitespace
+          posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
+        };
       }, liOfMovie);
-      console.log(attributeValue);    // TODO: Delete
+      allMoviesInWatchlist.push(movieDetails);
     }
+
+    // pick a random movie from the list
+    // const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
+    const random = 3;
+    const chosenMovie =
+      allMoviesInWatchlist[
+        random
+        // Math.floor(Math.random() * allMoviesInWatchlist.length)
+      ];
+
+    console.log(random);
+    console.log(allMoviesInWatchlist.length);
+    console.log(chosenMovie);
+    console.log(`your chosen movie is \n ${chosenMovie.name}`); // TODO: Delete
+
+    // console.log(allMoviesInWatchlist); // TODO: Delete
 
     // TODO: Go through all the pages that a user may have for their wishlist
     console.log("succesfully acquired a movie");
@@ -92,43 +113,5 @@ async function getWatchListMovies(username) {
     }
   }
 }
-
-// TODO: remove?
-async function autoScroll(page) {
-  await page.evaluate(async () => {
-    await new Promise((resolve) => {
-      var totalHeight = 0;
-      var distance = 100;
-      var timer = setInterval(() => {
-        var scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-
-        if (totalHeight >= scrollHeight - window.innerHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 100);
-    });
-  });
-}
-
-// TODO: remove?
-// async function scrollToBottom(page) {
-//   const distance = 100; // should be less than or equal to window.innerHeight
-//   const delay = 100;
-//   while (
-//     await page.evaluate(
-//       () =>
-//         document.scrollingElement.scrollTop + window.innerHeight <
-//         document.scrollingElement.scrollHeight
-//     )
-//   ) {
-//     await page.evaluate((y) => {
-//       document.scrollingElement.scrollBy(0, y);
-//     }, distance);
-//     await page.waitFor(delay);
-//   }
-// }
 
 client.login(process.env.LETTERBOTD_TOKEN);
