@@ -13,12 +13,15 @@ const client = new Client({
 });
 
 // event listener -- when bot is ready
-client.on('ready', (c) => {
-    console.log(`${c.user.username} is ready!`)
+client.on("ready", (c) => {
+  console.log(`${c.user.username} is ready!`);
 });
 
-client.on('messageCreate', (message) => {
-    console.log(message)
-})
+client.on("interactionCreate", (interaction) => {
+  // If it's not a slash command interaction, bot does nothing
+  if (!interaction.isChatInputCommand) return;
+
+  console.log(interaction);
+});
 
 client.login(process.env.LETTERBOTD_TOKEN);

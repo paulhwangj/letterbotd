@@ -1,3 +1,5 @@
+// Runs to actually register what commands the bot will have
+
 require("dotenv").config();
 const { REST, Routes } = require("discord.js");
 
