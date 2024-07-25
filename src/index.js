@@ -21,7 +21,9 @@ client.on("interactionCreate", (interaction) => {
   // If it's not a slash command interaction, bot does nothing
   if (!interaction.isChatInputCommand) return;
 
-  console.log(interaction);
+  if (interaction.commandName == "hey") {
+    interaction.reply("hey");
+  }
 });
 
 client.login(process.env.LETTERBOTD_TOKEN);
