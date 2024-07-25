@@ -37,11 +37,12 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 async function getWatchListMovies(username) {
+  var browser;
   try {
     console.log(`getting movies from ${username}'s watchlist`);
 
     // Launch the browser and open a new blank page
-    const browser = await puppeteer.launch();
+    browser = await puppeteer.launch();
     const page = await browser.newPage();
 
     // Navigate the page to a URL.
@@ -49,30 +50,46 @@ async function getWatchListMovies(username) {
       waitUntil: "domcontentloaded",
     });
 
-    // Get page data
-    const movies = await page.evaluate(() => {
-      // Fetch the first element with class "quote"
-      const movie = document.querySelector(".poster-container");
+    // checks to see that html is actually
+    // console.log(await page.content());
 
-      return { movie };
+    // Get all the elements with the class "poster-container"
+    // let movies = await page.$(".poster-container");
+    // let childDiv = await movies.$("div");
+    // console.log(await childDiv.evaluateHandle(el => el.dataset.filmName));
+
+    const dataValues = await page.$$eval(".poster-container", (divs) => {
+      divs.map((div) => console.log(div.dataset.filmName));
+      console.log(divs);
     });
 
-    console.log(movies);
+    console.log(dataValues);
 
-    await page.evaluate(() => {
-      let movies = document.getElementsByClassName("poster-container");
-      console.log(movies);
-      for (i = 0; i < movies.length; i++) {
-        console.log(movies[i]);
-      }
-    });
+    // await page.evaluate(() => {
+
+    //   for (i = 0; i < movies.length; i++) {
+
+    //   }
+    // });
+    // const movies = await page.evaluate(() => {
+    //   // Fetch the first element with class "quote"
+    //   const movie = document.querySelector(".poster-container");
+
+    //   return { movie };
+    // });
 
     // TODO: Go through all the pages that a user may have for their wishlist
     // await page.locator('.devsite-result-item-link').click();
+    console.log("succesfully acquired a movie");
   } catch (error) {
     console.log(
       `something went wrong when trying to get ${username}'s movies: ${error}`
     );
+
+    if (browser != null) {
+      console.log("closing browser");
+      await browser.close();
+    }
   }
 }
 
