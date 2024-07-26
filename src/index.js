@@ -111,7 +111,7 @@ async function getWatchListMovies(username) {
 
       // navigate to the next page if there are more pages
       if (areMorePages) {
-        console.log(nextUrl);
+        console.log(`nextUrl: ${nextUrl}`);
         if (nextUrl) {
           await page.goto(nextUrl, {
             waitUntil: "domcontentloaded",
@@ -144,10 +144,13 @@ async function getWatchListMovies(username) {
 
 async function determineAreMorePages(page, areMorePages, nextUrl) {
   let paginationPagesDiv = await page.$(".paginate-pages");
-  console.log(paginationPagesDiv); // TODO: delete
+  console.log(`paginationPagesDiv: ${paginationPagesDiv}`); // TODO: delete
   if (paginationPagesDiv != null) {
+    console.log("there are more pages to traverse!");
     areMorePages = await page.evaluate((el) => {
       let ul = el.querySelector("ul");
+      console.log(`ul: ${ul}`);
+
       // this should really only be one li and should always exist if a pagination exists
       let lis = ul.getElementsByClassName("paginate-current");
       let currentPageLi = lis[0];
