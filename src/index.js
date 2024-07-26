@@ -24,16 +24,19 @@ client.on("ready", (c) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  // If it's not a slash command interaction, bot does nothing
-  if (!interaction.isChatInputCommand) return;
+  try {
+    // If it's not a slash command interaction, bot does nothing
+    if (!interaction.isChatInputCommand) return;
 
-  console.log(`responding to interaction: ${interaction.commandName}`);
-  if (interaction.commandName == "choose-movie-for-me") {
-    var letterboxdUsername = interaction.options.get(
-      "letterboxd-username"
-    ).value;
-    await getWatchListMovies(letterboxdUsername);
-  }
+    console.log(`responding to interaction: ${interaction.commandName}`);
+    if (interaction.commandName == "choose-movie-for-me") {
+      var letterboxdUsername = interaction.options.get(
+        "letterboxd-username"
+      ).value;
+      let chosenMovie = await getWatchListMovies(letterboxdUsername);
+      interaction.reply(`You should watch: ${chosenMovie.name}`);
+    }
+  } catch (error) {}
 });
 
 async function getWatchListMovies(username) {
@@ -44,26 +47,17 @@ async function getWatchListMovies(username) {
     console.log(`getting movies from ${username}'s watchlist`);
 
     // Launch the browser and open a new blank page
-    browser = await puppeteer.launch({ headless: false });
+    browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-    });
 
     // Navigate the page to a URL.
     await page.goto(`https://letterboxd.com/${username}/watchlist/`, {
       waitUntil: "domcontentloaded",
     });
 
-    // // Scroll to the bottom of the page so that all the content loads
-    // await autoScroll(page);
-
-    // checks to see that html is actually
-    // console.log(await page.content());
-
     // Get all the elements with the class "poster-container"
     let movies = await page.$$(".poster-container");
+
     // movies will at most have 28 films in it
     for (let liOfMovie of movies) {
       // let attributeValue = await liOfMovie.evaluate((domElement) => {
@@ -72,7 +66,7 @@ async function getWatchListMovies(username) {
 
       let movieDetails = await page.evaluate((el) => {
         // Find the child elements with class "poster" within the current element
-        let poster = el.getElementsByClassName("poster")[0];
+        let poster = el.getElementsByClassName("film-poster")[0];
 
         // create custom object
         let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
@@ -85,8 +79,7 @@ async function getWatchListMovies(username) {
     }
 
     // pick a random movie from the list
-    // const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
-    const random = 3;
+    const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
     const chosenMovie =
       allMoviesInWatchlist[
         random
@@ -97,16 +90,17 @@ async function getWatchListMovies(username) {
     console.log(allMoviesInWatchlist.length);
     console.log(chosenMovie);
     console.log(`your chosen movie is \n ${chosenMovie.name}`); // TODO: Delete
-
     // console.log(allMoviesInWatchlist); // TODO: Delete
 
     // TODO: Go through all the pages that a user may have for their wishlist
     console.log("succesfully acquired a movie");
+
+    return chosenMovie;
   } catch (error) {
     console.log(
       `something went wrong when trying to get ${username}'s movies: ${error}`
     );
-
+  } finally {
     if (browser != null) {
       console.log("closing browser");
       await browser.close();
