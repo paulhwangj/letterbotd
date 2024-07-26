@@ -33,21 +33,14 @@ client.on("interactionCreate", async (interaction) => {
     console.log(`responding to interaction: ${interaction.commandName}`);
     if (interaction.commandName == "cmfm") {
       // needed if bot takes > 3 seconds to acknowledge to discord that bot received interaction
-      // await interaction.deferReply({ ephemeral: true });
-      // var letterboxdUsername = interaction.options.get(
-      //   "letterboxd-username"
-      // ).value;
-      // let chosenMovie = await getWatchListMovies(letterboxdUsername);
-      // console.log(`your chosen movie is:`); // TODO: Delete
-      // console.log(chosenMovie); // TODO: Delete
-      // await interaction.editReply(`You should watch: ${chosenMovie.name}`);
-
-      // TODO: Delete below
+      await interaction.deferReply();
       var letterboxdUsername = interaction.options.get(
         "letterboxd-username"
       ).value;
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
-      interaction.reply(`You should watch: ${chosenMovie.name}`);
+      console.log(`your chosen movie is:`); // TODO: Delete
+      console.log(chosenMovie); // TODO: Delete
+      await interaction.editReply(`You should watch: ${chosenMovie.name}`);
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
