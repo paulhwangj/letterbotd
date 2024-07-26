@@ -18,6 +18,7 @@ let browser;
 // event listener -- when bot is ready
 client.on("ready", async (c) => {
   console.log(`${c.user.username} is ready!`);
+  console.log("starting up puppeteer browser");
   browser = await puppeteer.launch({ headless: true });
 });
 
