@@ -1,8 +1,3 @@
-// TODO: Delete?
-// Need both import and require, followed: https://stackoverflow.com/a/61947868/22395752
-// import { createRequire } from 'module'
-// const require = createRequire(import.meta.url);
-
 require("dotenv").config();
 const { Client, IntentsBitField } = require("discord.js");
 const puppeteer = require("puppeteer");
@@ -18,15 +13,21 @@ const client = new Client({
   ],
 });
 
+let browser;
+
 // event listener -- when bot is ready
-client.on("ready", (c) => {
+client.on("ready", async (c) => {
   console.log(`${c.user.username} is ready!`);
+  browser = await puppeteer.launch({ headless: true });
 });
 
 client.on("interactionCreate", async (interaction) => {
   try {
     // If it's not a slash command interaction, bot does nothing
     if (!interaction.isChatInputCommand) return;
+
+    // if browser is not set, set it
+    if (!browser) browser = await puppeteer.launch({ headless: true });
 
     console.log(`responding to interaction: ${interaction.commandName}`);
     if (interaction.commandName == "choose-movie-for-me") {
@@ -36,24 +37,35 @@ client.on("interactionCreate", async (interaction) => {
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
       interaction.reply(`You should watch: ${chosenMovie.name}`);
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error(`Error handling interaction: ${error.message}`);
+    interaction.reply(`${error.message}`);
+  }
 });
 
 async function getWatchListMovies(username) {
-  var browser;
   try {
     let allMoviesInWatchlist = [];
     // TODO: Loop through all the pages that make up the whole watchlist
     console.log(`getting movies from ${username}'s watchlist`);
 
-    // Launch the browser and open a new blank page
-    browser = await puppeteer.launch();
+    // open a new page in the browser
     const page = await browser.newPage();
 
     // Navigate the page to a URL.
     await page.goto(`https://letterboxd.com/${username}/watchlist/`, {
       waitUntil: "domcontentloaded",
     });
+
+    // Check if the page was letterboxd's default error page
+    const isError = await page.evaluate(() => {
+      return document.body.classList.contains("error");
+    });
+    if (isError) {
+      throw new Error(
+        "Nothing pulled up... Make sure you typed in your username correctly!"
+      );
+    }
 
     // Scroll to bottom of page
     await autoScroll(page);
@@ -100,14 +112,7 @@ async function getWatchListMovies(username) {
 
     return chosenMovie;
   } catch (error) {
-    console.log(
-      `something went wrong when trying to get ${username}'s movies: ${error}`
-    );
-  } finally {
-    if (browser != null) {
-      console.log("closing browser");
-      await browser.close();
-    }
+    throw new Error(error);
   }
 }
 
