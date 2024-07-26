@@ -38,8 +38,8 @@ client.on("interactionCreate", async (interaction) => {
         "letterboxd-username"
       ).value;
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
-      console.log(`your chosen movie is:`); // TODO: Delete
-      console.log(chosenMovie); // TODO: Delete
+      console.log(`randomly chosen movie is:`);
+      console.log(chosenMovie);
       await interaction.editReply(`You should watch: ${chosenMovie.name}`);
     }
   } catch (error) {
@@ -78,15 +78,9 @@ async function getWatchListMovies(username) {
 
     do {
       // determines if there will be more pages to traverse
-      // areMorePages = true means there are
       let values = await determineAreMorePages(page, areMorePages, nextUrl);
       areMorePages = values.areMorePages;
       nextUrl = values.nextUrl;
-      // TODO: Delete below
-      // console.log(`values:`);
-      // console.log(values);
-      // console.log(`areMorePages: ${areMorePages}`);
-      // console.log(`nextUrl: ${nextUrl}`);
 
       // Scroll to bottom of page
       await autoScroll(page);
@@ -96,10 +90,6 @@ async function getWatchListMovies(username) {
 
       // movies will at most have 28 films in it
       for (let liOfMovie of movies) {
-        // let attributeValue = await liOfMovie.evaluate((domElement) => {
-        //   domElement.getElementsByClassName("poster");
-        // });
-
         let movieDetails = await page.evaluate((el) => {
           // Find the child elements with class "poster" within the current element
           let poster = el.getElementsByClassName("film-poster")[0];
@@ -148,10 +138,7 @@ async function getWatchListMovies(username) {
 async function determineAreMorePages(page, areMorePages, nextUrl) {
   let values = { areMorePages: false, nextUrl: null };
   let paginationPagesDiv = await page.$(".paginate-pages");
-  // console.log(`paginationPagesDiv: ${paginationPagesDiv}`); // TODO: delete
-  // console.log(`paginationPagesDiv (type): ${typeof paginationPagesDiv}`); // TODO: delete
   if (paginationPagesDiv != null) {
-    // console.log("there are more pages to traverse!");    // TODO: Delete
     values = await page.evaluate((el) => {
       // this should really only be one li and should always exist if a pagination exists
       let currentPageLi = el.getElementsByClassName("paginate-current")[0];
