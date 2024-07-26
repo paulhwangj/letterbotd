@@ -12,6 +12,9 @@
   "dependencies": {
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
-    "letterboxd-client": "^1.0.1"
+    "puppeteer": "^22.13.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.7.0"
   }
 }
