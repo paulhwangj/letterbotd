@@ -32,11 +32,15 @@ client.on("interactionCreate", async (interaction) => {
 
     console.log(`responding to interaction: ${interaction.commandName}`);
     if (interaction.commandName == "choose-movie-for-me") {
+      // needed if bot takes > 3 seconds to acknowledge to discord that bot received interaction
       var letterboxdUsername = interaction.options.get(
         "letterboxd-username"
       ).value;
+      await interaction.deferReply();
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
-      interaction.reply(`You should watch: ${chosenMovie.name}`);
+      console.log(`your chosen movie is:`); // TODO: Delete
+      console.log(chosenMovie); // TODO: Delete
+      await interaction.editReply(`You should watch: ${chosenMovie.name}`);
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
@@ -52,17 +56,6 @@ async function getWatchListMovies(username) {
 
     // open a new page in the browser
     const page = await browser.newPage();
-
-    // added to allow for console.log() in evaulate method
-    page.on(
-      "console",
-      (consoleMessageObject) =>
-        function (consoleMessageObject) {
-          if (consoleMessageObject._type !== "warning") {
-            console.debug(consoleMessageObject._text);
-          }
-        }
-    );
 
     // Navigate the page to a URL.
     let route = `${urlPrefix}${username}/watchlist/`;
@@ -145,8 +138,6 @@ async function getWatchListMovies(username) {
 
     console.log(`random int chosen: ${random}`);
     console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
-    console.log(`your chosen movie is:`); // TODO: Delete
-    console.log(chosenMovie); // TODO: Delete
     console.log("succesfully acquired a movie");
     return chosenMovie;
   } catch (error) {
