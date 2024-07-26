@@ -47,7 +47,6 @@ client.on("interactionCreate", async (interaction) => {
 async function getWatchListMovies(username) {
   try {
     let allMoviesInWatchlist = [];
-    // TODO: Loop through all the pages that make up the whole watchlist
     console.log(`getting movies from ${username}'s watchlist`);
 
     // open a new page in the browser
@@ -67,6 +66,26 @@ async function getWatchListMovies(username) {
         "Nothing pulled up... Make sure you typed in your username correctly!"
       );
     }
+
+    let areMorePages = false;
+    let paginationPagesDiv = await page.$(".paginate-pages");
+    if (paginationPagesDiv != null) {
+      let movieDetails = await page.evaluate((el) => {
+        // TODO: get the li after the li with the class "paginate-current"\
+        // Find the child elements with class "poster" within the current element
+        let ul = el.getElementsByTagName("ul");
+        let lis = ul.getElementsByTagName("li");
+
+        console.log(lis);
+        areMorePages = true;
+      }, paginationPagesDiv);
+    }
+    // if (paginationPagesDiv = null && ) {  // TODO: or if there is, while there's a <li> that comes after the li with "paginate-current", we keep going
+    //   areMorePages = true;
+    // }
+
+    // TODO: uncomment
+    // do {} while (areMorePages);
 
     // Scroll to bottom of page
     await autoScroll(page);
