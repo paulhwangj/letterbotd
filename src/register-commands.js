@@ -4,8 +4,8 @@ const { REST, Routes, ApplicationCommandOptionType } = require("discord.js");
 
 const commands = [
   {
-    name: "choose-movie-for-me",
-    description: "chooses a random movie that's currently on your watchlist",
+    name: "cmfm",
+    description: "choose a movie from my watchlist!",
     options: [
       {
         name: "letterboxd-username",
