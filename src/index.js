@@ -46,6 +46,7 @@ client.on("interactionCreate", async (interaction) => {
 
 async function getWatchListMovies(username) {
   try {
+    const urlPrefix = "https://letterboxd.com/";
     let allMoviesInWatchlist = [];
     console.log(`getting movies from ${username}'s watchlist`);
 
@@ -53,7 +54,8 @@ async function getWatchListMovies(username) {
     const page = await browser.newPage();
 
     // Navigate the page to a URL.
-    await page.goto(`https://letterboxd.com/${username}/watchlist/`, {
+    let route = `${urlPrefix}${username}/watchlist/`;
+    await page.goto(route, {
       waitUntil: "domcontentloaded",
     });
 
@@ -68,51 +70,68 @@ async function getWatchListMovies(username) {
     }
 
     let areMorePages = false;
+    let nextUrl;
     let paginationPagesDiv = await page.$(".paginate-pages");
+    console.log(paginationPagesDiv); // TODO: delete
     if (paginationPagesDiv != null) {
-      let movieDetails = await page.evaluate((el) => {
-        // TODO: get the li after the li with the class "paginate-current"\
-        // Find the child elements with class "poster" within the current element
-        let ul = el.getElementsByTagName("ul");
-        let lis = ul.getElementsByTagName("li");
-
-        console.log(lis);
-        areMorePages = true;
+      areMorePages = await page.evaluate((el) => {
+        let ul = el.querySelector("ul");
+        let lis = ul.getElementsByClassName("paginate-current"); // this should really only be one li and should always exist if a pagination exists
+        let currentPageLi = lis[0];
+        if (currentPageLi) {
+          let nextPageLi = currentPageLi.nextElementSibling;
+          if (nextPageLi && nextPageLi.querySelector("a")) {
+            nextUrl = nextPageLi.querySelector("a").getAttribute("href");
+            return true;
+          } else {
+            // there is no sibling to the li
+            return false;
+          }
+        }
+        throw new Error(
+          "There was no li with the class 'paginate-current' when there should have been"
+        );
       }, paginationPagesDiv);
     }
-    // if (paginationPagesDiv = null && ) {  // TODO: or if there is, while there's a <li> that comes after the li with "paginate-current", we keep going
-    //   areMorePages = true;
-    // }
 
-    // TODO: uncomment
-    // do {} while (areMorePages);
+    do {
+      // Scroll to bottom of page
+      await autoScroll(page);
 
-    // Scroll to bottom of page
-    await autoScroll(page);
+      // Get all the elements with the class "poster-container"
+      let movies = await page.$$(".poster-container");
 
-    // Get all the elements with the class "poster-container"
-    let movies = await page.$$(".poster-container");
+      // movies will at most have 28 films in it
+      for (let liOfMovie of movies) {
+        // let attributeValue = await liOfMovie.evaluate((domElement) => {
+        //   domElement.getElementsByClassName("poster");
+        // });
 
-    // movies will at most have 28 films in it
-    for (let liOfMovie of movies) {
-      // let attributeValue = await liOfMovie.evaluate((domElement) => {
-      //   domElement.getElementsByClassName("poster");
-      // });
+        let movieDetails = await page.evaluate((el) => {
+          // Find the child elements with class "poster" within the current element
+          let poster = el.getElementsByClassName("film-poster")[0];
 
-      let movieDetails = await page.evaluate((el) => {
-        // Find the child elements with class "poster" within the current element
-        let poster = el.getElementsByClassName("film-poster")[0];
+          // create custom object
+          let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
+          return {
+            name: poster.textContent.trim(), // Extract the text content and trim whitespace
+            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
+          };
+        }, liOfMovie);
+        allMoviesInWatchlist.push(movieDetails);
+      }
 
-        // create custom object
-        let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
-        return {
-          name: poster.textContent.trim(), // Extract the text content and trim whitespace
-          posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
-        };
-      }, liOfMovie);
-      allMoviesInWatchlist.push(movieDetails);
-    }
+      // navigate to the next page
+      if (areMorePages) {
+        if (nextUrl) {
+          await page.goto(nextUrl, {
+            waitUntil: "domcontentloaded",
+          });
+        }
+      }
+    } while (areMorePages);
 
+    // choose the movie
     // pick a random movie from the list
     const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
     const chosenMovie =
@@ -129,7 +148,6 @@ async function getWatchListMovies(username) {
 
     // TODO: Go through all the pages that a user may have for their wishlist
     console.log("succesfully acquired a movie");
-
     return chosenMovie;
   } catch (error) {
     throw new Error(error);
