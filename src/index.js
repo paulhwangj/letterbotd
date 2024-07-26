@@ -71,30 +71,18 @@ async function getWatchListMovies(username) {
 
     let areMorePages = false;
     let nextUrl;
-    let paginationPagesDiv = await page.$(".paginate-pages");
-    console.log(paginationPagesDiv); // TODO: delete
-    if (paginationPagesDiv != null) {
-      areMorePages = await page.evaluate((el) => {
-        let ul = el.querySelector("ul");
-        let lis = ul.getElementsByClassName("paginate-current"); // this should really only be one li and should always exist if a pagination exists
-        let currentPageLi = lis[0];
-        if (currentPageLi) {
-          let nextPageLi = currentPageLi.nextElementSibling;
-          if (nextPageLi && nextPageLi.querySelector("a")) {
-            nextUrl = nextPageLi.querySelector("a").getAttribute("href");
-            return true;
-          } else {
-            // there is no sibling to the li
-            return false;
-          }
-        }
-        throw new Error(
-          "There was no li with the class 'paginate-current' when there should have been"
-        );
-      }, paginationPagesDiv);
-    }
 
     do {
+      // determines if there will be more pages to traverse
+      // areMorePages = true means there are
+      ({ areMorePages, nextUrl } = await determineAreMorePages(
+        page,
+        areMorePages,
+        nextUrl
+      ));
+      console.log(`areMorePages: ${areMorePages}`);
+      console.log(`nextUrl: ${nextUrl}`);
+
       // Scroll to bottom of page
       await autoScroll(page);
 
@@ -121,12 +109,15 @@ async function getWatchListMovies(username) {
         allMoviesInWatchlist.push(movieDetails);
       }
 
-      // navigate to the next page
+      // navigate to the next page if there are more pages
       if (areMorePages) {
+        console.log(nextUrl);
         if (nextUrl) {
           await page.goto(nextUrl, {
             waitUntil: "domcontentloaded",
           });
+        } else {
+          areMorePages = false;
         }
       }
     } while (areMorePages);
@@ -140,18 +131,46 @@ async function getWatchListMovies(username) {
         // Math.floor(Math.random() * allMoviesInWatchlist.length)
       ];
 
-    console.log(random);
-    console.log(allMoviesInWatchlist.length);
-    console.log(chosenMovie);
-    console.log(`your chosen movie is \n ${chosenMovie.name}`); // TODO: Delete
-    // console.log(allMoviesInWatchlist); // TODO: Delete
-
-    // TODO: Go through all the pages that a user may have for their wishlist
+    console.log(`random int chosen: ${random}`);
+    console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
+    console.log(`your chosen movie is:`); // TODO: Delete
+    console.log(chosenMovie); // TODO: Delete
     console.log("succesfully acquired a movie");
     return chosenMovie;
   } catch (error) {
     throw new Error(error);
   }
+}
+
+async function determineAreMorePages(page, areMorePages, nextUrl) {
+  let paginationPagesDiv = await page.$(".paginate-pages");
+  console.log(paginationPagesDiv); // TODO: delete
+  if (paginationPagesDiv != null) {
+    areMorePages = await page.evaluate((el) => {
+      let ul = el.querySelector("ul");
+      // this should really only be one li and should always exist if a pagination exists
+      let lis = ul.getElementsByClassName("paginate-current");
+      let currentPageLi = lis[0];
+      console.log(`currentPageLi: ${currentPageLi}`);
+      if (currentPageLi) {
+        let nextPageLi = currentPageLi.nextElementSibling;
+        if (nextPageLi && nextPageLi.querySelector("a")) {
+          nextUrl = nextPageLi.querySelector("a").getAttribute("href");
+          return true;
+        } else {
+          // there is no sibling to the li
+          return false;
+        }
+      }
+      throw new Error(
+        "There was no li with the class 'paginate-current' when there should have been"
+      );
+    }, paginationPagesDiv);
+  } else {
+    areMorePages = false;
+    nextUrl = null;
+  }
+  return { areMorePages, nextUrl };
 }
 
 async function autoScroll(page) {
