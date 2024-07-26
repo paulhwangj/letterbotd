@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, IntentsBitField } = require("discord.js");
+const { Client, IntentsBitField, EmbedBuilder } = require("discord.js");
 const puppeteer = require("puppeteer");
 
 // Client = our bot, this is what we initialize
@@ -37,10 +37,25 @@ client.on("interactionCreate", async (interaction) => {
       var letterboxdUsername = interaction.options.get(
         "letterboxd-username"
       ).value;
+
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
       console.log(`randomly chosen movie is:`);
       console.log(chosenMovie);
-      await interaction.editReply(`You should watch: ${chosenMovie.name}`);
+
+      // noticed that url could be malformed, had to remove the '2x' that appears at the end
+      // ex: https://a.ltrbxd.com/resized/sm/upload/dr/hr/pz/ez/ehLb2SQ3djlA1FrQKbP2WO3VH09-0-250-0-375-crop.jpg?v=6489920a92 2x
+      let fixedPosterSrcString = chosenMovie.posterSrc.substring(
+        0,
+        chosenMovie.posterSrc.length - 3
+      );
+      console.log(`fixedPosterSrcString: ${fixedPosterSrcString}`);   // TODO: Delete
+      chosenMovie.posterSrc = fixedPosterSrcString;
+      // begin creating the embed
+      const embed = new EmbedBuilder()
+        .setTitle(chosenMovie.name)
+        .setImage(chosenMovie.posterSrc);
+
+      await interaction.editReply({ embeds: [embed] });
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
