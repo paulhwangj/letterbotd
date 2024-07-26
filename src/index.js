@@ -173,6 +173,7 @@ async function determineAreMorePages(page, areMorePages, nextUrl) {
   return { areMorePages, nextUrl };
 }
 
+// scrolls to the bottom of the page to ensure that everything is loaded
 async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
@@ -191,7 +192,5 @@ async function autoScroll(page) {
     });
   });
 }
-
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 client.login(process.env.LETTERBOTD_TOKEN);
