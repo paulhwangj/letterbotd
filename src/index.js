@@ -53,6 +53,17 @@ async function getWatchListMovies(username) {
     // open a new page in the browser
     const page = await browser.newPage();
 
+    // added to allow for console.log() in evaulate method
+    page.on(
+      "console",
+      (consoleMessageObject) =>
+        function (consoleMessageObject) {
+          if (consoleMessageObject._type !== "warning") {
+            console.debug(consoleMessageObject._text);
+          }
+        }
+    );
+
     // Navigate the page to a URL.
     let route = `${urlPrefix}${username}/watchlist/`;
     await page.goto(route, {
@@ -70,18 +81,19 @@ async function getWatchListMovies(username) {
     }
 
     let areMorePages = false;
-    let nextUrl;
+    let nextUrl = null;
 
     do {
       // determines if there will be more pages to traverse
       // areMorePages = true means there are
-      ({ areMorePages, nextUrl } = await determineAreMorePages(
-        page,
-        areMorePages,
-        nextUrl
-      ));
-      console.log(`areMorePages: ${areMorePages}`);
-      console.log(`nextUrl: ${nextUrl}`);
+      let values = await determineAreMorePages(page, areMorePages, nextUrl);
+      areMorePages = values.areMorePages;
+      nextUrl = values.nextUrl;
+      // TODO: Delete below
+      // console.log(`values:`);
+      // console.log(values);
+      // console.log(`areMorePages: ${areMorePages}`);
+      // console.log(`nextUrl: ${nextUrl}`);
 
       // Scroll to bottom of page
       await autoScroll(page);
@@ -143,37 +155,32 @@ async function getWatchListMovies(username) {
 }
 
 async function determineAreMorePages(page, areMorePages, nextUrl) {
+  let values = { areMorePages: false, nextUrl: null };
   let paginationPagesDiv = await page.$(".paginate-pages");
-  console.log(`paginationPagesDiv: ${paginationPagesDiv}`); // TODO: delete
+  // console.log(`paginationPagesDiv: ${paginationPagesDiv}`); // TODO: delete
+  // console.log(`paginationPagesDiv (type): ${typeof paginationPagesDiv}`); // TODO: delete
   if (paginationPagesDiv != null) {
-    console.log("there are more pages to traverse!");
-    areMorePages = await page.evaluate((el) => {
-      let ul = el.querySelector("ul");
-      console.log(`ul: ${ul}`);
-
+    // console.log("there are more pages to traverse!");    // TODO: Delete
+    values = await page.evaluate((el) => {
       // this should really only be one li and should always exist if a pagination exists
-      let lis = ul.getElementsByClassName("paginate-current");
-      let currentPageLi = lis[0];
-      console.log(`currentPageLi: ${currentPageLi}`);
+      let currentPageLi = el.getElementsByClassName("paginate-current")[0];
       if (currentPageLi) {
         let nextPageLi = currentPageLi.nextElementSibling;
         if (nextPageLi && nextPageLi.querySelector("a")) {
-          nextUrl = nextPageLi.querySelector("a").getAttribute("href");
-          return true;
+          return {
+            areMorePages: true,
+            nextUrl: nextPageLi.querySelector("a").href,
+          };
         } else {
-          // there is no sibling to the li
-          return false;
+          return {
+            areMorePages: false,
+            nextUrl: null,
+          };
         }
       }
-      throw new Error(
-        "There was no li with the class 'paginate-current' when there should have been"
-      );
     }, paginationPagesDiv);
-  } else {
-    areMorePages = false;
-    nextUrl = null;
   }
-  return { areMorePages, nextUrl };
+  return values;
 }
 
 // scrolls to the bottom of the page to ensure that everything is loaded
