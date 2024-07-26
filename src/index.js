@@ -59,7 +59,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
-    interaction.reply(`${error.message}`);
+    await interaction.editReply(`${error.message}`);
   }
 });
 
@@ -84,7 +84,7 @@ async function getWatchListMovies(username) {
     });
     if (isError) {
       throw new Error(
-        "Nothing pulled up... Make sure you typed in your username correctly!"
+        `Nothing pulled up at ${route}... Make sure you typed in your username correctly!`
       );
     }
 
@@ -132,6 +132,13 @@ async function getWatchListMovies(username) {
       }
     } while (areMorePages);
 
+    // if there are no movies, throw an error
+    if (allMoviesInWatchlist.length == 0) {
+      throw new Error(
+        `There are no movies in your watchlist...`
+      );
+    }
+
     // choose the movie
     // pick a random movie from the list
     const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
@@ -146,7 +153,7 @@ async function getWatchListMovies(username) {
     console.log("succesfully acquired a movie");
     return chosenMovie;
   } catch (error) {
-    throw new Error(error);
+    throw error;
   }
 }
 
