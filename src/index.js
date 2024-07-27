@@ -119,19 +119,8 @@ async function getWatchListMovies(username) {
       }
     } while (areMorePages);
 
-    // choose the movie
     // pick a random movie from the list
-    const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
-    const chosenMovie =
-      allMoviesInWatchlist[
-        random
-        // Math.floor(Math.random() * allMoviesInWatchlist.length)
-      ];
-
-    console.log(`random int chosen: ${random}`);
-    console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
-    console.log("succesfully acquired a movie");
-    return chosenMovie;
+    return chooseRandomMovie();
   } catch (error) {
     throw new Error(error);
   }
@@ -161,6 +150,20 @@ async function determineAreMorePages(page, areMorePages, nextUrl) {
     }, paginationPagesDiv);
   }
   return values;
+}
+
+function chooseRandomMovie(allMoviesInWatchlist) {
+  const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
+  const chosenMovie =
+    allMoviesInWatchlist[
+      random
+      // Math.floor(Math.random() * allMoviesInWatchlist.length)
+    ];
+
+  console.log(`random int chosen: ${random}`);
+  console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
+  console.log("succesfully acquired a movie");
+  return chosenMovie;
 }
 
 // scrolls to the bottom of the page to ensure that everything is loaded
