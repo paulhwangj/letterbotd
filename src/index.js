@@ -18,6 +18,7 @@ let browser;
 // event listener -- when bot is ready
 client.on("ready", async (c) => {
   console.log(`${c.user.username} is ready!`);
+  console.log("starting up puppeteer browser");
   browser = await puppeteer.launch({ headless: true });
 });
 
@@ -30,12 +31,16 @@ client.on("interactionCreate", async (interaction) => {
     if (!browser) browser = await puppeteer.launch({ headless: true });
 
     console.log(`responding to interaction: ${interaction.commandName}`);
-    if (interaction.commandName == "choose-movie-for-me") {
+    if (interaction.commandName == "cmfm") {
+      // needed if bot takes > 3 seconds to acknowledge to discord that bot received interaction
+      await interaction.deferReply();
       var letterboxdUsername = interaction.options.get(
         "letterboxd-username"
       ).value;
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
-      interaction.reply(`You should watch: ${chosenMovie.name}`);
+      console.log(`randomly chosen movie is:`);
+      console.log(chosenMovie);
+      await interaction.editReply(`You should watch: ${chosenMovie.name}`);
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
@@ -45,15 +50,16 @@ client.on("interactionCreate", async (interaction) => {
 
 async function getWatchListMovies(username) {
   try {
+    const urlPrefix = "https://letterboxd.com/";
     let allMoviesInWatchlist = [];
-    // TODO: Loop through all the pages that make up the whole watchlist
     console.log(`getting movies from ${username}'s watchlist`);
 
     // open a new page in the browser
     const page = await browser.newPage();
 
     // Navigate the page to a URL.
-    await page.goto(`https://letterboxd.com/${username}/watchlist/`, {
+    let route = `${urlPrefix}${username}/watchlist/`;
+    await page.goto(route, {
       waitUntil: "domcontentloaded",
     });
 
@@ -67,21 +73,20 @@ async function getWatchListMovies(username) {
       );
     }
 
-    // Scroll to bottom of page
-    await autoScroll(page);
+    let areMorePages = false;
+    let nextUrl = null;
 
-    // Get all the elements with the class "poster-container"
-    let movies = await page.$$(".poster-container");
+    do {
+      // determines if there will be more pages to traverse
+      let values = await determineAreMorePages(page, areMorePages, nextUrl);
+      areMorePages = values.areMorePages;
+      nextUrl = values.nextUrl;
 
-    // movies will at most have 28 films in it
-    for (let liOfMovie of movies) {
-      // let attributeValue = await liOfMovie.evaluate((domElement) => {
-      //   domElement.getElementsByClassName("poster");
-      // });
+      // Scroll to bottom of page
+      await autoScroll(page);
 
-      let movieDetails = await page.evaluate((el) => {
-        // Find the child elements with class "poster" within the current element
-        let poster = el.getElementsByClassName("film-poster")[0];
+      // Get all the elements with the class "poster-container"
+      let movies = await page.$$(".poster-container");
 
       // movies will at most have 28 films in it
       for (let liOfMovie of movies) {
@@ -123,21 +128,42 @@ async function getWatchListMovies(username) {
         // Math.floor(Math.random() * allMoviesInWatchlist.length)
       ];
 
-    console.log(random);
-    console.log(allMoviesInWatchlist.length);
-    console.log(chosenMovie);
-    console.log(`your chosen movie is \n ${chosenMovie.name}`); // TODO: Delete
-    // console.log(allMoviesInWatchlist); // TODO: Delete
-
-    // TODO: Go through all the pages that a user may have for their wishlist
+    console.log(`random int chosen: ${random}`);
+    console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
     console.log("succesfully acquired a movie");
-
     return chosenMovie;
   } catch (error) {
     throw new Error(error);
   }
 }
 
+async function determineAreMorePages(page, areMorePages, nextUrl) {
+  let values = { areMorePages: false, nextUrl: null };
+  let paginationPagesDiv = await page.$(".paginate-pages");
+  if (paginationPagesDiv != null) {
+    values = await page.evaluate((el) => {
+      // this should really only be one li and should always exist if a pagination exists
+      let currentPageLi = el.getElementsByClassName("paginate-current")[0];
+      if (currentPageLi) {
+        let nextPageLi = currentPageLi.nextElementSibling;
+        if (nextPageLi && nextPageLi.querySelector("a")) {
+          return {
+            areMorePages: true,
+            nextUrl: nextPageLi.querySelector("a").href,
+          };
+        } else {
+          return {
+            areMorePages: false,
+            nextUrl: null,
+          };
+        }
+      }
+    }, paginationPagesDiv);
+  }
+  return values;
+}
+
+// scrolls to the bottom of the page to ensure that everything is loaded
 async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
@@ -156,7 +182,5 @@ async function autoScroll(page) {
     });
   });
 }
-
-const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 client.login(process.env.LETTERBOTD_TOKEN);
