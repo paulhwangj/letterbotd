@@ -83,16 +83,38 @@ async function getWatchListMovies(username) {
         // Find the child elements with class "poster" within the current element
         let poster = el.getElementsByClassName("film-poster")[0];
 
-        // create custom object
-        let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
-        return {
-          name: poster.textContent.trim(), // Extract the text content and trim whitespace
-          posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
-        };
-      }, liOfMovie);
-      allMoviesInWatchlist.push(movieDetails);
-    }
+      // movies will at most have 28 films in it
+      for (let liOfMovie of movies) {
+        let movieDetails = await page.evaluate((el) => {
+          // Find the child elements with class "poster" within the current element
+          let poster = el.getElementsByClassName("film-poster")[0];
+          let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
+          let a = poster.getElementsByTagName("a")[0]; // Assuming there's at least one a under this div
 
+          // return custom "movie" object
+          return {
+            name: poster.textContent.trim(),
+            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null,
+            urlToFilmPage: a ? a.getAttribute("href") : null,
+          };
+        }, liOfMovie);
+        allMoviesInWatchlist.push(movieDetails);
+      }
+
+      // navigate to the next page if there are more pages
+      if (areMorePages) {
+        console.log(`nextUrl: ${nextUrl}`);
+        if (nextUrl) {
+          await page.goto(nextUrl, {
+            waitUntil: "domcontentloaded",
+          });
+        } else {
+          areMorePages = false;
+        }
+      }
+    } while (areMorePages);
+
+    // choose the movie
     // pick a random movie from the list
     const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
     const chosenMovie =
