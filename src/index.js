@@ -108,12 +108,14 @@ async function getWatchListMovies(username) {
         let movieDetails = await page.evaluate((el) => {
           // Find the child elements with class "poster" within the current element
           let poster = el.getElementsByClassName("film-poster")[0];
-
-          // create custom object
           let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
+          let a = poster.getElementsByTagName("a")[0]; // Assuming there's at least one a under this div
+
+          // return custom "movie" object
           return {
-            name: poster.textContent.trim(), // Extract the text content and trim whitespace
-            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
+            name: poster.textContent.trim(),
+            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null,
+            urlToFilmPage: a ? a.getAttribute("href") : null,
           };
         }, liOfMovie);
         allMoviesInWatchlist.push(movieDetails);
@@ -139,19 +141,8 @@ async function getWatchListMovies(username) {
       );
     }
 
-    // choose the movie
     // pick a random movie from the list
-    const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
-    const chosenMovie =
-      allMoviesInWatchlist[
-        random
-        // Math.floor(Math.random() * allMoviesInWatchlist.length)
-      ];
-
-    console.log(`random int chosen: ${random}`);
-    console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
-    console.log("succesfully acquired a movie");
-    return chosenMovie;
+    return chooseRandomMovie();
   } catch (error) {
     throw error;
   }
@@ -181,6 +172,20 @@ async function determineAreMorePages(page, areMorePages, nextUrl) {
     }, paginationPagesDiv);
   }
   return values;
+}
+
+function chooseRandomMovie(allMoviesInWatchlist) {
+  const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
+  const chosenMovie =
+    allMoviesInWatchlist[
+      random
+      // Math.floor(Math.random() * allMoviesInWatchlist.length)
+    ];
+
+  console.log(`random int chosen: ${random}`);
+  console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
+  console.log("succesfully acquired a movie");
+  return chosenMovie;
 }
 
 // scrolls to the bottom of the page to ensure that everything is loaded
