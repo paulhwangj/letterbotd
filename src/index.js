@@ -13,6 +13,10 @@ const client = new Client({
   ],
 });
 
+// constants
+const botIconUrl =
+  "https://opengameart.org/sites/default/files/robot-preview.png";
+
 let browser;
 
 // event listener -- when bot is ready
@@ -48,12 +52,24 @@ client.on("interactionCreate", async (interaction) => {
         0,
         chosenMovie.posterSrc.length - 3
       );
-      console.log(`fixedPosterSrcString: ${fixedPosterSrcString}`);   // TODO: Delete
+      console.log(`fixedPosterSrcString: ${fixedPosterSrcString}`); // TODO: Delete
       chosenMovie.posterSrc = fixedPosterSrcString;
       // begin creating the embed
       const embed = new EmbedBuilder()
         .setTitle(chosenMovie.name)
-        .setImage(chosenMovie.posterSrc);
+        .setURL(chosenMovie.url)
+        .setAuthor({
+          name: `${interaction.user.tag}'s random movie!`,
+          iconURL: botIconUrl,
+          url: chosenMovie.url,
+        })
+        .setDescription(chosenMovie.synopsis)
+        .setImage(chosenMovie.posterSrc)
+        .setTimestamp()
+        .setFooter({
+          text: "...now watch it!",
+          iconURL: botIconUrl,
+        });
 
       await interaction.editReply({ embeds: [embed] });
     }
@@ -114,7 +130,9 @@ async function getWatchListMovies(username) {
           // return custom "movie" object
           return {
             name: poster.textContent.trim(),
-            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null,
+            posterSrc: imgElement
+              ? imgElement.getAttribute("srcset")
+              : `https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/6fd01a38-ce7a-4b53-9198-a172af440836/df4vmox-6977063a-8759-4022-9df9-6552496416fd.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzZmZDAxYTM4LWNlN2EtNGI1My05MTk4LWExNzJhZjQ0MDgzNlwvZGY0dm1veC02OTc3MDYzYS04NzU5LTQwMjItOWRmOS02NTUyNDk2NDE2ZmQucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.QdYou4QSNGeThGcHjEH_qVWUtHgJ4MeHhSPhdyQu0Cc`,
             urlToFilmPage: a ? a.getAttribute("href") : null,
           };
         }, liOfMovie);
@@ -135,14 +153,44 @@ async function getWatchListMovies(username) {
     } while (areMorePages);
 
     // if there are no movies, throw an error
+    console.log("checking to see if there are no movies in their watchlist..."); // TODO: Remove
     if (allMoviesInWatchlist.length == 0) {
-      throw new Error(
-        `There are no movies in your watchlist...`
-      );
+      throw new Error(`There are no movies in your watchlist...`);
     }
 
     // pick a random movie from the list
-    return chooseRandomMovie();
+    const chosenMovie = chooseRandomMovie(allMoviesInWatchlist);
+
+    // navigate to the film's page on letterboxd and get info
+    await page.goto(`${urlPrefix}${chosenMovie.urlToFilmPage}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await autoScroll(page);
+    let values = {
+      synopsis: null,
+    };
+    let parentDiv = await page.$(".review");
+    console.log(`parentDiv: ${JSON.stringify(parentDiv, null, 4)}`); // TODO: Delete
+    if (parentDiv != null) {
+      values = await page.evaluate((el) => {
+        let synopsis = el
+          .getElementsByTagName("div")[0]
+          .getElementsByTagName("p")[0].innerText;
+
+        return {
+          synopsis: synopsis,
+        };
+      }, parentDiv);
+    }
+
+    const movie = {
+      name: chosenMovie.name,
+      posterSrc: chosenMovie.posterSrc,
+      url: `${urlPrefix}${chosenMovie.urlToFilmPage}`,
+      synopsis: values.synopsis,
+    };
+
+    return movie;
   } catch (error) {
     throw error;
   }
@@ -175,6 +223,7 @@ async function determineAreMorePages(page, areMorePages, nextUrl) {
 }
 
 function chooseRandomMovie(allMoviesInWatchlist) {
+  console.log("starting to choose a random movie...");
   const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
   const chosenMovie =
     allMoviesInWatchlist[
@@ -184,7 +233,6 @@ function chooseRandomMovie(allMoviesInWatchlist) {
 
   console.log(`random int chosen: ${random}`);
   console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
-  console.log("succesfully acquired a movie");
   return chosenMovie;
 }
 
