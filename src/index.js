@@ -54,13 +54,17 @@ client.on("interactionCreate", async (interaction) => {
       );
       console.log(`fixedPosterSrcString: ${fixedPosterSrcString}`); // TODO: Delete
       chosenMovie.posterSrc = fixedPosterSrcString;
+
+      // TODO: Delete below
+      console.log(`${JSON.stringify(interaction.user)}`);
       // begin creating the embed
       const embed = new EmbedBuilder()
         .setTitle(chosenMovie.name)
         .setURL(chosenMovie.url)
         .setAuthor({
-          name: `${interaction.user.tag}'s random movie!`,
-          iconURL: botIconUrl,
+          name: `${interaction.user.globalName}'s random movie!`,
+          iconURL: interaction.user.displayAvatarURL(),
+          // iconURL: botIconUrl,
           url: chosenMovie.url,
         })
         .setDescription(chosenMovie.synopsis)
