@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, IntentsBitField } = require("discord.js");
+const { Client, IntentsBitField, EmbedBuilder } = require("discord.js");
 const puppeteer = require("puppeteer");
 
 // Client = our bot, this is what we initialize
@@ -12,6 +12,10 @@ const client = new Client({
     IntentsBitField.Flags.MessageContent,
   ],
 });
+
+// constants
+const botIconUrl =
+  "https://opengameart.org/sites/default/files/robot-preview.png";
 
 let browser;
 
@@ -37,14 +41,41 @@ client.on("interactionCreate", async (interaction) => {
       var letterboxdUsername = interaction.options.get(
         "letterboxd-username"
       ).value;
+
       let chosenMovie = await getWatchListMovies(letterboxdUsername);
       console.log(`randomly chosen movie is:`);
       console.log(chosenMovie);
-      await interaction.editReply(`You should watch: ${chosenMovie.name}`);
+
+      // noticed that url could be malformed, had to remove the '2x' that appears at the end
+      // ex: https://a.ltrbxd.com/resized/sm/upload/dr/hr/pz/ez/ehLb2SQ3djlA1FrQKbP2WO3VH09-0-250-0-375-crop.jpg?v=6489920a92 2x
+      let fixedPosterSrcString = chosenMovie.posterSrc.substring(
+        0,
+        chosenMovie.posterSrc.length - 3
+      );
+      console.log(`fixedPosterSrcString: ${fixedPosterSrcString}`); // TODO: Delete
+      chosenMovie.posterSrc = fixedPosterSrcString;
+      // begin creating the embed
+      const embed = new EmbedBuilder()
+        .setTitle(chosenMovie.name)
+        .setURL(chosenMovie.url)
+        .setAuthor({
+          name: `${interaction.user.tag}'s random movie!`,
+          iconURL: botIconUrl,
+          url: chosenMovie.url,
+        })
+        .setDescription(chosenMovie.synopsis)
+        .setImage(chosenMovie.posterSrc)
+        .setTimestamp()
+        .setFooter({
+          text: "...now watch it!",
+          iconURL: botIconUrl,
+        });
+
+      await interaction.editReply({ embeds: [embed] });
     }
   } catch (error) {
     console.error(`Error handling interaction: ${error.message}`);
-    interaction.reply(`${error.message}`);
+    await interaction.editReply(`${error.message}`);
   }
 });
 
@@ -69,7 +100,7 @@ async function getWatchListMovies(username) {
     });
     if (isError) {
       throw new Error(
-        "Nothing pulled up... Make sure you typed in your username correctly!"
+        `Nothing pulled up at ${route}... Make sure you typed in your username correctly!`
       );
     }
 
@@ -93,12 +124,16 @@ async function getWatchListMovies(username) {
         let movieDetails = await page.evaluate((el) => {
           // Find the child elements with class "poster" within the current element
           let poster = el.getElementsByClassName("film-poster")[0];
-
-          // create custom object
           let imgElement = poster.getElementsByTagName("img")[0]; // Assuming there's at least one img
+          let a = poster.getElementsByTagName("a")[0]; // Assuming there's at least one a under this div
+
+          // return custom "movie" object
           return {
-            name: poster.textContent.trim(), // Extract the text content and trim whitespace
-            posterSrc: imgElement ? imgElement.getAttribute("srcset") : null, // Extract the src of the first img or null if not present
+            name: poster.textContent.trim(),
+            posterSrc: imgElement
+              ? imgElement.getAttribute("srcset")
+              : `https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/6fd01a38-ce7a-4b53-9198-a172af440836/df4vmox-6977063a-8759-4022-9df9-6552496416fd.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzZmZDAxYTM4LWNlN2EtNGI1My05MTk4LWExNzJhZjQ0MDgzNlwvZGY0dm1veC02OTc3MDYzYS04NzU5LTQwMjItOWRmOS02NTUyNDk2NDE2ZmQucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.QdYou4QSNGeThGcHjEH_qVWUtHgJ4MeHhSPhdyQu0Cc`,
+            urlToFilmPage: a ? a.getAttribute("href") : null,
           };
         }, liOfMovie);
         allMoviesInWatchlist.push(movieDetails);
@@ -117,21 +152,47 @@ async function getWatchListMovies(username) {
       }
     } while (areMorePages);
 
-    // choose the movie
-    // pick a random movie from the list
-    const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
-    const chosenMovie =
-      allMoviesInWatchlist[
-        random
-        // Math.floor(Math.random() * allMoviesInWatchlist.length)
-      ];
+    // if there are no movies, throw an error
+    console.log("checking to see if there are no movies in their watchlist..."); // TODO: Remove
+    if (allMoviesInWatchlist.length == 0) {
+      throw new Error(`There are no movies in your watchlist...`);
+    }
 
-    console.log(`random int chosen: ${random}`);
-    console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
-    console.log("succesfully acquired a movie");
-    return chosenMovie;
+    // pick a random movie from the list
+    const chosenMovie = chooseRandomMovie(allMoviesInWatchlist);
+
+    // navigate to the film's page on letterboxd and get info
+    await page.goto(`${urlPrefix}${chosenMovie.urlToFilmPage}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await autoScroll(page);
+    let values = {
+      synopsis: null,
+    };
+    let parentDiv = await page.$(".review");
+    console.log(`parentDiv: ${JSON.stringify(parentDiv, null, 4)}`); // TODO: Delete
+    if (parentDiv != null) {
+      values = await page.evaluate((el) => {
+        let synopsis = el
+          .getElementsByTagName("div")[0]
+          .getElementsByTagName("p")[0].innerText;
+
+        return {
+          synopsis: synopsis,
+        };
+      }, parentDiv);
+    }
+
+    const movie = {
+      name: chosenMovie.name,
+      posterSrc: chosenMovie.posterSrc,
+      url: `${urlPrefix}${chosenMovie.urlToFilmPage}`,
+      synopsis: values.synopsis,
+    };
+
+    return movie;
   } catch (error) {
-    throw new Error(error);
+    throw error;
   }
 }
 
@@ -159,6 +220,20 @@ async function determineAreMorePages(page, areMorePages, nextUrl) {
     }, paginationPagesDiv);
   }
   return values;
+}
+
+function chooseRandomMovie(allMoviesInWatchlist) {
+  console.log("starting to choose a random movie...");
+  const random = Math.floor(Math.random() * allMoviesInWatchlist.length);
+  const chosenMovie =
+    allMoviesInWatchlist[
+      random
+      // Math.floor(Math.random() * allMoviesInWatchlist.length)
+    ];
+
+  console.log(`random int chosen: ${random}`);
+  console.log(`total movies gathered: ${allMoviesInWatchlist.length}`);
+  return chosenMovie;
 }
 
 // scrolls to the bottom of the page to ensure that everything is loaded
